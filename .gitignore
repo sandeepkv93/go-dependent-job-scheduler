@@ -20,4 +20,8 @@
 # Go workspace file
 go.work
 
-paralleljobschedulerwithdependentjobs
+go-dependent-job-scheduler
+
+# Local agent/cache artifacts
+.agent-cache/
+.codex

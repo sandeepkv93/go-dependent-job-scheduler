@@ -1,21 +1,85 @@
-# Parallel Job Scheduler With Dependent Jobs
+# Go Dependency Job Scheduler
 
-### Problem Statement
+## Problem statement
 
-Write java program for Parallel Job Scheduler. Implement the generic solution in Java using Multithreading, given a list of jobs and its children jobs.
+Build a Go scheduler that executes dependency-aware jobs in parallel while ensuring that a job starts only after all of its parents complete.
 
 For example:
 
--   Job A and Job B are the starting jobs which can be started in parallel
--   Job C is a child of Job A and Job D is a child of Job B. So, Job C needs to wait until Job A completes and Job D needs to wait till Job B completes
--   Job E is a child of both Job C and Job D. Therefore, it needs to wait until both Job C and Job D completes.
--   Job F, Job G and Job H are the children of Job E. So, as soon as Job E completes, all three of the children jobs can be started in parallel.
--   Finally, Job I is the child of all three jobs Job F, Job G and Job H. So, Job I needs to wait till Job F, Job G and Job H to complete.
+- Job A and Job B are starting jobs and can run in parallel.
+- Job C depends on Job A, and Job D depends on Job B.
+- Job E depends on both Job C and Job D.
+- Job F, Job G, and Job H depend on Job E and can start in parallel after it completes.
+- Job I depends on Job F, Job G, and Job H.
 
-This diagram shows the flow of the example described above
+This diagram shows the example flow:
 
 ![](flow.png)
 
-### Solution
+## Solution
 
-This repository provides an implementation of a parallel job scheduler that can schedule dependent jobs in parallel. The scheduler uses go routines to execute the jobs and ensures that child jobs are not executed before their parent jobs are completed. The scheduler ensures that the jobs are executed in the order of their dependencies. It uses the CountDownLatch class to ensure that the child jobs are not executed before their parent jobs are completed. The go routines are waited on using the WaitGroup class to ensure that the main thread does not exit before all the jobs are completed.
+This repository provides a dependency-aware parallel scheduler implemented in Go. The scheduler:
+
+- validates the input graph before execution
+- runs all ready jobs concurrently
+- prevents downstream jobs from starting before all parents finish
+- stops scheduling new work after the first job failure
+- returns explicit errors instead of panicking or hanging on invalid input
+
+## Package overview
+
+- `scheduler`: job model, validation, and execution
+- `main.go`: runnable example graph
+
+## Usage
+
+```go
+package main
+
+import (
+	"context"
+	"log"
+
+	"github.com/sandeepkv93/go-dependent-job-scheduler/scheduler"
+)
+
+func main() {
+	jobA, err := scheduler.NewJobWithRunner("A", func(context.Context) error {
+		return nil
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	jobB, err := scheduler.NewJobWithRunner("B", func(context.Context) error {
+		return nil
+	}, jobA)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err := scheduler.ScheduleAllJobs([]*scheduler.Job{jobA, jobB}); err != nil {
+		log.Fatal(err)
+	}
+}
+```
+
+## Validation behavior
+
+- jobs must have non-empty names
+- dependencies must be non-nil and unique per job
+- the scheduled job list must not contain duplicates
+- every dependency must be included in the scheduled job set
+
+## Run
+
+```bash
+go run .
+```
+
+## Test
+
+```bash
+go test ./...
+go vet ./...
+```

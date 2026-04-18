@@ -1,42 +1,75 @@
 package scheduler
 
 import (
+	"context"
+	"errors"
 	"fmt"
-	"math/rand"
-	"time"
-
-	"github.com/sandeepkv93/paralleljobschedulerwithdependentjobs/concurrencyutils"
+	"strings"
 )
 
+// Runner defines the unit of work executed for a job.
+type Runner func(context.Context) error
+
+// Job describes a node in the dependency graph.
 type Job struct {
-	// string name
 	Name string
-	// list of Jobs struct childrenJobs
-	ChildrenJobs []*Job
-	// list of jobs struct parentsJobs
-	ParentsJobs []*Job
-	latch       *concurrencyutils.CountDownLatch
+
+	runner   Runner
+	children []*Job
+	parents  []*Job
 }
 
-func NewJob(name string, parentJobs ...*Job) *Job {
+// NewJob creates a job without a custom runner.
+func NewJob(name string, parentJobs ...*Job) (*Job, error) {
+	return NewJobWithRunner(name, nil, parentJobs...)
+}
+
+// NewJobWithRunner creates a job and validates its dependency list.
+func NewJobWithRunner(name string, runner Runner, parentJobs ...*Job) (*Job, error) {
+	if strings.TrimSpace(name) == "" {
+		return nil, errors.New("job name must not be empty")
+	}
+
 	job := &Job{
-		Name: name,
+		Name:   name,
+		runner: runner,
 	}
 
+	seenParents := make(map[*Job]struct{}, len(parentJobs))
 	for _, parentJob := range parentJobs {
-		job.ParentsJobs = append(job.ParentsJobs, parentJob)
-		parentJob.ChildrenJobs = append(parentJob.ChildrenJobs, job)
+		if parentJob == nil {
+			return nil, fmt.Errorf("job %q has a nil dependency", name)
+		}
+		if _, exists := seenParents[parentJob]; exists {
+			return nil, fmt.Errorf("job %q has duplicate dependency %q", name, parentJob.Name)
+		}
+
+		seenParents[parentJob] = struct{}{}
+		job.parents = append(job.parents, parentJob)
+		parentJob.children = append(parentJob.children, job)
 	}
 
-	job.latch = concurrencyutils.NewCountDownLatch(len(parentJobs))
-	return job
+	return job, nil
 }
 
-func (job *Job) Run() {
-	fmt.Println(job.Name + " started")
+// Parents returns the job dependencies in declaration order.
+func (job *Job) Parents() []*Job {
+	return append([]*Job(nil), job.parents...)
+}
 
-	// Sleeping for a random time between 4 and 8 seconds to simulate work
-	time.Sleep(time.Duration(rand.Intn(4)+4) * time.Second)
+// Children returns the dependent jobs in declaration order.
+func (job *Job) Children() []*Job {
+	return append([]*Job(nil), job.children...)
+}
 
-	fmt.Println(job.Name + " completed")
+func (job *Job) run(ctx context.Context) error {
+	if job.runner == nil {
+		return nil
+	}
+
+	if err := job.runner(ctx); err != nil {
+		return fmt.Errorf("job %q failed: %w", job.Name, err)
+	}
+
+	return nil
 }

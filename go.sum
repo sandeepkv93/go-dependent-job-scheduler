@@ -1,7 +1,0 @@
-github.com/ghosind/collection v0.2.0 h1:Paarax65yeXftV/mQbP3VuEi+eHUgWhd8OyxsVwKGZU=
-github.com/ghosind/collection v0.2.0/go.mod h1:h70axZPL3xyzSSDHMxC79IaHkG7qPFh5D4023i15htg=
-github.com/ghosind/go-assert v0.1.5 h1:5YtJeEjTzDFVfNYzb169pJyk2oIFQ6AN14vmHsU1wzo=
-github.com/ghosind/utils v0.1.2 h1:glbF9Hts4bHN16hTCW4k2/Llz/oCVixEKxxCaQzmzIk=
-github.com/ghosind/utils v0.1.2/go.mod h1:G5ezFPRsZJGnUrHuc49L64TEO6QAIHZAVsnq0iQPm+w=
-golang.org/x/exp v0.0.0-20230811145659-89c5cff77bcb h1:mIKbk8weKhSeLH2GmUTrvx8CjkyJmnU1wFmg59CUjFA=
-golang.org/x/exp v0.0.0-20230811145659-89c5cff77bcb/go.mod h1:FXUEEKJgO7OQYeo8N01OfiKP8RXMtf6e8aTskBGqWdc=
